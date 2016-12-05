@@ -8,8 +8,8 @@ jenkins:
     - jenkins-docker-slave:slave
 
 jenkins-docker-slave:
-  image: base2/ciinabox-dind-slave
-  privileged: true
+  image: base2/ciinabox-dood-slave
+  privileged: false
   environment:
     - JAVA_OPTS=-Duser.timezone=Australia/Melbourne
     - PORT=4444
@@ -18,3 +18,5 @@ jenkins-docker-slave:
     - "4444:4444"
   volumes:
     - $HOME/.aws/:/home/jenkins/.aws
+    - /var/run/docker.sock:/var/run/docker.sock
+    - /data/jenkins-dood:/data/jenkins-dood
