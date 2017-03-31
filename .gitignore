@@ -5,3 +5,5 @@ out/
 .idea
 .DS_Store
 ciinaboxes
+src/test/generated
+src/test/resources/plugins/*.hpi

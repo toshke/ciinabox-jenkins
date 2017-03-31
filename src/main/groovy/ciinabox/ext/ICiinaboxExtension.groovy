@@ -1,4 +1,4 @@
-package com.base2.ciinabox.ext
+package ciinabox.ext
 
 import javaposse.jobdsl.dsl.Job
 
@@ -7,6 +7,8 @@ import javaposse.jobdsl.dsl.Job
  */
 public interface ICiinaboxExtension {
 
-    void extend(Job job, def jobConfiguration)
+    void setJobConfiguration(jobConfiguration)
+
+    void extend(Job job)
 
 }

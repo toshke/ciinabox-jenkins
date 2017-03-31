@@ -1,3 +1,9 @@
+import de.undercouch.gradle.tasks.download.Download
+
+plugins {
+    id "de.undercouch.download" version "3.2.0"
+}
+
 apply plugin: 'groovy'
 
 sourceSets {
@@ -6,21 +12,49 @@ sourceSets {
             srcDirs 'jobs'
         }
     }
+    main {
+        groovy {
+            srcDirs 'src/main/groovy'
+        }
+    }
+    test {
+        java {
+            srcDirs 'src/test/generated'
+        }
+    }
 }
 
 repositories {
     mavenCentral()
     jcenter()
     maven { url 'http://repo.jenkins-ci.org/releases/' }
+    maven { url 'http://maven.jahia.org/maven2/' }
 }
 
 dependencies {
     compile 'org.codehaus.groovy:groovy:2.1.3'
-    compile 'org.jenkins-ci.plugins:job-dsl-core:1.41'
-    compile 'org.jenkins-ci.plugins:job-dsl:1.41'
-    compile 'org.reflections:reflections:0.9.10'
-    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.24'
+    compile 'org.jenkins-ci.main:jenkins-core:2.52'
 
+    compile 'org.jenkins-ci.plugins:job-dsl-core:1.53'
+    compile 'org.jenkins-ci.plugins:job-dsl:1.53@jar'
+
+    testCompile 'org.jenkins-ci.main:jenkins-test-harness:2.19'
+    testCompile 'org.jenkins-ci.main:jenkins-war:2.52'
+    testCompile 'org.jenkins-ci.plugins:ghprb:1.35.0@jar'
+    testCompile 'org.kohsuke:github-api:1.85'
+    testCompile 'org.jenkins-ci.plugins:credentials:2.1.13'
+    testCompile 'org.jenkins-ci.plugins:credentials:2.1.13@jar'
+    testCompile 'org.jenkins-ci.plugins:job-dsl:1.53@jar'
+    testCompile 'org.jenkins-ci.plugins:job-dsl:1.53'
+    testCompile 'org.jenkins-ci.plugins:structs:1.2@jar'
+
+    compile   fileTree(dir: 'lib', include: '*.jar')
+    compile 'org.reflections:reflections:0.9.10'
+
+    compile 'org.jenkins-ci.plugins:ghprb:1.35.0@jar'
+
+
+    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.24'
     compile group: 'org.apache.commons', name: 'commons-io', version: '1.3.2'
     compile group: 'javax.servlet', name: 'servlet-api', version: '2.5'
 
@@ -48,7 +82,7 @@ task rest(dependsOn: 'classes', type: JavaExec) {
 }
 
 task jenkins(dependsOn: 'classes', type: JavaExec) {
-  main = 'com.base2.ciinabox.JobSeeder'
+  main = 'ciinabox.JobSeeder'
   classpath = sourceSets.main.runtimeClasspath
   systemProperties System.getProperties()
 }
@@ -61,4 +95,32 @@ task debugXml(dependsOn: 'classes', type: JavaExec) {
 
 task wrapper(type: Wrapper) {
     gradleVersion = '2.4'
+}
+
+task generateTests(){
+    def templateBody = new File('src/test/resources/templates/TestRunner.gsp').text,
+        listOfPlugins = new File('src/test/resources/plugins/plugins.txt').text.split('\n'),
+        pluginsTemplateVar = listOfPlugins.collect{"\"${it}.hpi\""}.join(','+System.lineSeparator()),
+        engine = new groovy.text.SimpleTemplateEngine(),
+        binding = ['pluginsList':pluginsTemplateVar]
+
+
+        def template = engine.createTemplate(templateBody).make(binding)
+        new File('src/test/generated/com/base2/ciinabox/jenkins').mkdirs()
+        new File('src/test/generated/com/base2/ciinabox/jenkins/TestRunner.java').write(template.toString())
+}
+
+task downloadJenkinsPlugins(type: Download){
+    def listOfPlugins = new File('src/test/resources/plugins/plugins.txt').text.split('\n')
+    def downloadList = []
+    def destination = "src/test/resources/plugins/"
+
+    listOfPlugins.each { plugin ->
+        def src = "http://ftp-chi.osuosl.org/pub/jenkins/plugins/${plugin}/latest/${plugin}.hpi"
+        downloadList << src
+    }
+
+    onlyIfNewer true
+    src downloadList
+    dest destination
 }
