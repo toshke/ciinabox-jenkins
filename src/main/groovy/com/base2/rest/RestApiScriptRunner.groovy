@@ -1,24 +1,40 @@
 package com.base2.rest
 
-import javaposse.jobdsl.dsl.DslScriptLoader
+import groovyx.net.http.HttpResponseDecorator
+import groovyx.net.http.RESTClient
 
-String pattern = System.getProperty('pattern')
-String baseUrl = System.getProperty('baseUrl')
-String username = System.getProperty('username')
-String password = System.getProperty('password') // password or token
 
-if (!pattern || !baseUrl) {
-    println 'usage: -Dpattern=<pattern> -DbaseUrl=<baseUrl> [-Dusername=<username>] [-Dpassword=<password>]'
-    System.exit 1
+class RestApiScriptRunner {
+  final RESTClient restClient
+
+  RestApiScriptRunner(String baseUrl) {
+    if (!baseUrl != null && !baseUrl.endsWith("/")) {
+      baseUrl += "/"
+    }
+    println("using jenkins url: ${baseUrl}")
+    restClient = new RESTClient(baseUrl)
+    restClient.ignoreSSLIssues()
+    restClient.handler.failure = { it }
+  }
+
+  void setCredentials(String username, String password) {
+    restClient.headers['Authorization'] = 'Basic ' + "$username:$password".bytes.encodeBase64()
+  }
+
+  void executeScript(String scriptPath) {
+    if (!new File(scriptPath).exists()) {
+      throw new RuntimeException("Jenkins script ${scriptPath} not found")
+    }
+    String scriptContent = new File(scriptPath).text
+    def resp = restClient.post(
+            path: '/scriptText',
+            contentType: 'application/x-www-form-urlencoded',
+            body: [script : scriptContent]
+    )
+    println "\n\nJenkins Output:\n\n"
+    println resp?.data.toString()
+
+  }
+
 }
 
-RestApiJobManagement jm = new RestApiJobManagement(baseUrl)
-if (username && password) {
-    jm.setCredentials username, password
-}
-
-new FileNameFinder().getFileNames('.', pattern).each { String fileName ->
-    println "\nprocessing file: $fileName"
-    File file = new File(fileName)
-    DslScriptLoader.runDslEngine(file.text, jm)
-}
