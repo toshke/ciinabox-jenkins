@@ -1,8 +1,8 @@
 import jenkins.model.*
 import java.util.UUID.*
 import org.jenkinsci.plugins.configfiles.*
-import org.jenkinsci.lib.configprovider.model.Config;
-import org.jenkinsci.plugins.managedscripts.ScriptConfig;
+import org.jenkinsci.lib.configprovider.model.Config
+import org.jenkinsci.plugins.managedscripts.ScriptConfig
 
 def inst = Jenkins.getInstance()
 
